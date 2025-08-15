@@ -15,11 +15,12 @@ func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
+	tokenSecret := os.Getenv("TOKENSECRET")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal(err)
 	}
-	config := &apiConfig{dbQueries: database.New(db), platform: platform}
+	config := &apiConfig{dbQueries: database.New(db), platform: platform, tokenSecret: tokenSecret}
 
 	handler := http.NewServeMux()
 	server := &http.Server{
@@ -36,8 +37,13 @@ func main() {
 
 	handler.HandleFunc("GET /admin/metrics", config.writeMetrics)
 	handler.HandleFunc("POST /admin/reset", config.resetMetrics)
-	handler.HandleFunc("POST /api/validate_chirp", validateChirp)
+	handler.HandleFunc("POST /api/chirps", config.CreateChirp)
+	handler.HandleFunc("GET /api/chirps", config.GetChirps)
+	handler.HandleFunc("GET /api/chirps/{id}", config.GetChirpByID)
 	handler.HandleFunc("POST /api/users", config.createUser)
+	handler.HandleFunc("POST /api/login", config.HandleLogin)
+	handler.HandleFunc("POST /api/refresh", config.HandleRefresh)
+	handler.HandleFunc("POST /api/revoke", config.HandleRevoke)
 
 	log.Fatal(server.ListenAndServe())
 }
