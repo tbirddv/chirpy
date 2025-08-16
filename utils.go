@@ -3,9 +3,14 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/google/uuid"
+	"github.com/tbirddv/chirpy/internal/auth"
+	"github.com/tbirddv/chirpy/internal/database"
 )
 
 func respondWithError(w http.ResponseWriter, message string, statusCode int) {
@@ -59,4 +64,45 @@ func cleanProfanity(body string, badWords []string) string {
 		}
 	}
 	return strings.Join(cleanedBody, " ")
+}
+
+func (c *apiConfig) getLoggedInUser(r *http.Request) (uuid.UUID, error) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return auth.ValidateJWT(token, c.tokenSecret)
+}
+
+func createResponseStruct(input interface{}) (any, error) {
+	switch v := input.(type) {
+	case database.User:
+		return User{
+			ID:          v.ID,
+			CreatedAt:   v.CreatedAt,
+			UpdatedAt:   v.UpdatedAt,
+			Email:       v.Email,
+			IsChirpyRed: v.IsChirpyRed,
+		}, nil
+	case database.Chirp:
+		return Chirp{
+			ID:        v.ID,
+			CreatedAt: v.CreatedAt,
+			UpdatedAt: v.UpdatedAt,
+			Body:      v.Body,
+			UserID:    v.UserID,
+		}, nil
+	case []database.Chirp:
+		var chirps []Chirp
+		for _, c := range v {
+			chirp, err := createResponseStruct(c)
+			if err != nil {
+				return nil, err
+			}
+			chirps = append(chirps, chirp.(Chirp))
+		}
+		return chirps, nil
+	default:
+		return nil, fmt.Errorf("unknown type: %T", input)
+	}
 }

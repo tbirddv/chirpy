@@ -16,11 +16,13 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
 	tokenSecret := os.Getenv("TOKENSECRET")
+	polkaKey := os.Getenv("POLKA_KEY")
+
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal(err)
 	}
-	config := &apiConfig{dbQueries: database.New(db), platform: platform, tokenSecret: tokenSecret}
+	config := &apiConfig{dbQueries: database.New(db), platform: platform, tokenSecret: tokenSecret, polkaKey: polkaKey}
 
 	handler := http.NewServeMux()
 	server := &http.Server{
@@ -44,6 +46,9 @@ func main() {
 	handler.HandleFunc("POST /api/login", config.HandleLogin)
 	handler.HandleFunc("POST /api/refresh", config.HandleRefresh)
 	handler.HandleFunc("POST /api/revoke", config.HandleRevoke)
+	handler.HandleFunc("PUT /api/users", config.updateUser)
+	handler.HandleFunc("DELETE /api/chirps/{id}", config.DeleteChirp)
+	handler.HandleFunc("POST /api/polka/webhooks", config.GiveChirpyRed)
 
 	log.Fatal(server.ListenAndServe())
 }

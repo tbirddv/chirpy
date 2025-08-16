@@ -60,6 +60,7 @@ func (c *apiConfig) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:    user.CreatedAt,
 		UpdatedAt:    user.UpdatedAt,
 		Email:        user.Email,
+		IsChirpyRed:  user.IsChirpyRed,
 		AccessToken:  token,
 		RefreshToken: refreshToken,
 	}
